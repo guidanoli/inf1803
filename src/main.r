@@ -19,3 +19,7 @@ top_cidades_brasil <- dbGetQuery(conn, "select * from (select state, city, cast(
 write.csv2(top_cidades_brasil, file="data/top_cidades_brasil.csv", quote=FALSE)
 top_cidades_rj <- dbGetQuery(conn, "select * from (select city, cast(sum(new_confirmed) as float)/estimated_population_2019 as taxa, cast(sum(new_deaths) as float)/sum(new_confirmed) as letalidade, cast(sum(new_deaths) as float)/estimated_population_2019 as mortalidade from casos where place_type is 'city' and state is 'RJ' group by city_ibge_code order by taxa desc limit 10) order by city")
 write.csv2(top_cidades_rj, file="data/top_cidades_rj.csv", quote=FALSE)
+casos_por_regiao <- dbGetQuery(conn, "select nomeregiao, sum(new_confirmed) as casos_acumulados from casos, estados, regioes where casos.state = estados.uf and estados.codigoregiao = regioes.codigoregiao and place_type is 'city' group by regioes.codigoregiao order by casos_acumulados desc;")
+write.csv2(casos_por_regiao, file="data/casos_por_regiao.csv", quote=FALSE)
+casos_por_estado_sudeste <- dbGetQuery(conn, "select estados.nomeestado, sum(new_confirmed) as casos_acumulados from casos, estados, regioes where casos.state = estados.uf and estados.codigoregiao = regioes.codigoregiao and regioes.nomeregiao is 'Sudeste' and place_type is 'city' group by estados.uf order by casos_acumulados desc;")
+write.csv2(casos_por_estado_sudeste, file="data/casos_por_estado_sudeste.csv", quote=FALSE)
