@@ -9,8 +9,13 @@ Matéria lecionada pela professora Ana Carolina Letichevsky no 2º período de 2
 
 # Configuração
 
-Primeiramente, deve criar o banco de dados SQL com o SQLite, rodando o script `src/dbcreate.sql`.
+Basta rodar o script Bash de configuração. Caso seja necessário, você pode editar variáveis de configuração como o nome do programa SQLite no seu sistema (por padrão, assume-se que se chama `sqlite3`). Para isso, edite a variável `SQLITE` no script Bash.
 
 ```sh
-sqlite3 data/covid.db < src/dbcreate.sql
+$ chmod +x src/setup.sh
+$ ./src/setup.sh
+Using sqlite3...
+Deleting already existing database data/covid.db...
+Creating database data/covid.db from script src/dbcreate.sql...
+Done in 13.269610434 s.
 ```
