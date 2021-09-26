@@ -2,10 +2,15 @@
 
 Matéria lecionada pela professora Ana Carolina Letichevsky no 2º período de 2021.
 
-# Requerimentos
+# Programas requeridos
 
 * R >= 3.4.4
 * SQLite3 >= 3.22.0
+
+# Pacotes R requeridos
+
+* DBI
+* RSQLite
 
 # Configuração
 
