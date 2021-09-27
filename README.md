@@ -4,6 +4,7 @@ Matéria lecionada pela professora Ana Carolina Letichevsky no 2º período de 2
 
 # Programas requeridos
 
+* Git LFS >= 2.13.3
 * R >= 3.4.4
 * SQLite3 >= 3.22.0
 
