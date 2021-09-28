@@ -16,13 +16,23 @@ mortalidade <- total_obitos / habitantes
 mortalidade_rj_estado <- total_obitos_rj_estado / habitantes_rj_estado
 mortalidade_rj_cidade <- total_obitos_rj_cidade / habitantes_rj_cidade
 top_cidades_brasil <- dbGetQuery(conn, "select * from (select state, city, cast(sum(new_confirmed) as float)/estimated_population_2019 as taxa, cast(sum(new_deaths) as float)/sum(new_confirmed) as letalidade, cast(sum(new_deaths) as float)/estimated_population_2019 as mortalidade from casos where place_type is 'city' group by city_ibge_code order by taxa desc limit 10) order by state, city")
+top_cidades_brasil$taxa <- print(label_percent(accuracy=0.01, suffix="")(top_cidades_brasil$taxa))
+top_cidades_brasil$letalidade <- print(label_percent(accuracy=0.01, suffix="")(top_cidades_brasil$letalidade))
+top_cidades_brasil$mortalidade <- print(label_percent(accuracy=0.01, suffix="")(top_cidades_brasil$mortalidade))
 write.csv2(top_cidades_brasil, file="data/top_cidades_brasil.csv", quote=FALSE)
 top_cidades_rj <- dbGetQuery(conn, "select * from (select city, cast(sum(new_confirmed) as float)/estimated_population_2019 as taxa, cast(sum(new_deaths) as float)/sum(new_confirmed) as letalidade, cast(sum(new_deaths) as float)/estimated_population_2019 as mortalidade from casos where place_type is 'city' and state is 'RJ' group by city_ibge_code order by taxa desc limit 10) order by city")
+top_cidades_rj$taxa <- print(label_percent(accuracy=0.01, suffix="")(top_cidades_rj$taxa))
+top_cidades_rj$letalidade <- print(label_percent(accuracy=0.01, suffix="")(top_cidades_rj$letalidade))
+top_cidades_rj$mortalidade <- print(label_percent(accuracy=0.01, suffix="")(top_cidades_rj$mortalidade))
 write.csv2(top_cidades_rj, file="data/top_cidades_rj.csv", quote=FALSE)
 casos_por_regiao <- dbGetQuery(conn, "select nomeregiao, sum(new_confirmed) as casos_acumulados from casos, estados, regioes where casos.state = estados.uf and estados.codigoregiao = regioes.codigoregiao and place_type is 'city' group by regioes.codigoregiao order by casos_acumulados desc;")
 write.csv2(casos_por_regiao, file="data/casos_por_regiao.csv", quote=FALSE)
 casos_por_estado_sudeste <- dbGetQuery(conn, "select estados.nomeestado, sum(new_confirmed) as casos_acumulados from casos, estados, regioes where casos.state = estados.uf and estados.codigoregiao = regioes.codigoregiao and regioes.nomeregiao is 'Sudeste' and place_type is 'city' group by estados.uf order by casos_acumulados desc;")
 write.csv2(casos_por_estado_sudeste, file="data/casos_por_estado_sudeste.csv", quote=FALSE)
+dados_por_estado <- dbGetQuery(conn, "select uf, total_casos, total_obitos, cast(total_obitos as float)/total_casos as letalidade, cast(total_obitos as float)/nhabs as mortalidade from (select state as uf, sum(new_confirmed) as total_casos, sum(new_deaths) as total_obitos, estimated_population_2019 as nhabs from casos where place_type is 'state' group by uf);")
+dados_por_estado$letalidade <- print(label_percent(accuracy=0.01, suffix="")(dados_por_estado$letalidade))
+dados_por_estado$mortalidade <- print(label_percent(accuracy=0.01, suffix="")(dados_por_estado$mortalidade))
+write.csv2(dados_por_estado, file="data/dados_por_estado.csv", quote=FALSE)
 ## Plotting
 library(rgdal)
 library(ggplot2)
@@ -91,7 +101,7 @@ dispersao_casos <- ggplot(NULL, aes(x = id, y = total_casos))+
   geom_line(data = casos_diarios, aes(color = "Brasil"))+
   geom_point(data = casos_diarios_rj, aes(color = "RJ"))+
   geom_line(data = casos_diarios_rj, aes(color = "RJ"))+
-  labs(title = "Casos diários de COVID-19", x = "#Dia", y = "Número de casos novos")+
+  labs(title = "Casos diários de COVID-19", x = "Dia", y = "Número de casos novos")+
   scale_color_manual(name = "Região", breaks = c("Brasil", "RJ"), values = c("darkgreen", "darkblue"))
 ggsave(file="plots/scatter_casos.svg", plot=dispersao_casos)
 # Scatter plot on daily deaths
@@ -102,7 +112,7 @@ obitos_diarios_rj_mm <- left_join(obitos_diarios_rj_mm, datas, by="date")
 dispersao_obitos <- ggplot(NULL, aes(x = id, y = daily_deaths_avg))+
   geom_point(data = obitos_diarios_mm, aes(color = "Brasil"))+
   geom_point(data = obitos_diarios_rj_mm, aes(color = "RJ"))+
-  labs(title = "Óbitos diários de COVID-19", x = "#Dia", y = "Número de óbitos novos")+
+  labs(title = "Óbitos diários de COVID-19", x = "Dia", y = "Número de óbitos novos")+
   scale_color_manual(name = "Região", breaks = c("Brasil", "RJ"), values = c("darkgreen", "darkblue"))
 ggsave(file="plots/scatter_obitos.svg", plot=dispersao_obitos)
 # Make trend analysis on daily deaths
@@ -137,8 +147,6 @@ dispersao_casos_obitos_rj <- ggplot(NULL)+
   geom_line(data = casos_acumulados_rj, aes(color = "Casos acumulados", x = id, y = casos_ac))+
   geom_point(data = obitos_acumulados_rj, aes(color = "Óbitos acumulados", x = id, y = obitos_ac))+
   geom_line(data = obitos_acumulados_rj, aes(color = "Óbitos acumulados", x = id, y = obitos_ac))+
-  labs(title = "Casos e óbitos acumulados de COVID-19 no estado do Rio de Janeiro", x = "#Dia", y = "Número de casos/óbitos")+
+  labs(title = "Casos e óbitos acumulados de COVID-19 no estado do Rio de Janeiro", x = "Dia", y = "Número de casos/óbitos")+
   scale_color_manual(name = "", breaks = c("Casos acumulados", "Óbitos acumulados"), values = c("darkblue", "red"))
 ggsave(file="plots/scatter_obitos_casos_acumulados_rj.svg", plot=dispersao_casos_obitos_rj)
-# Data per state
-dados_por_estado <- dbGetQuery(conn, "select uf, total_casos, total_obitos, cast(total_obitos as float)/total_casos as letalidade, cast(total_obitos as float)/nhabs as mortalidade from (select state as uf, sum(new_confirmed) as total_casos, sum(new_deaths) as total_obitos, estimated_population_2019 as nhabs from casos where place_type is 'state' group by uf);")
