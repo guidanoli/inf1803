@@ -1,9 +1,9 @@
 library(DBI)
 conn <- dbConnect(RSQLite::SQLite(), dbname="data/covid.db")
-total_casos <- dbGetQuery(conn, "select sum(new_confirmed) from casos where place_type is 'city'")[,1]
+total_casos <- dbGetQuery(conn, "select sum(new_confirmed) from casos where place_type is 'state'")[,1]
 total_casos_rj_estado <- dbGetQuery(conn, "select sum(new_confirmed) from casos where state is 'RJ' and place_type is 'state'")[,1]
 total_casos_rj_cidade <- dbGetQuery(conn, "select sum(new_confirmed) from casos where state is 'RJ' and city is 'Rio de Janeiro' and place_type is 'city'")[,1]
-total_obitos <- dbGetQuery(conn, "select sum(new_deaths) from casos where place_type is 'city'")[,1]
+total_obitos <- dbGetQuery(conn, "select sum(new_deaths) from casos where place_type is 'state'")[,1]
 total_obitos_rj_estado <- dbGetQuery(conn, "select sum(new_deaths) from casos where state is 'RJ' and place_type is 'state'")[,1]
 total_obitos_rj_cidade <- dbGetQuery(conn, "select sum(new_deaths) from casos where state is 'RJ' and city is 'Rio de Janeiro' and place_type is 'city'")[,1]
 letalidade <- total_obitos / total_casos
