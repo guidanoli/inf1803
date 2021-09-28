@@ -127,3 +127,18 @@ if (rate < -0.15) {
 } else {
   print("Estável")
 }
+# Accumulated cases and deaths
+casos_acumulados_rj <- dbGetQuery(conn, "select date, sum(new_confirmed) over (rows unbounded preceding) as casos_ac from casos where place_type is 'state' and state is 'RJ' group by date;")
+obitos_acumulados_rj <- dbGetQuery(conn, "select date, sum(new_deaths) over (rows unbounded preceding) as obitos_ac from casos where place_type is 'state' and state is 'RJ' group by date;")
+casos_acumulados_rj <- left_join(casos_acumulados_rj, datas, by="date")
+obitos_acumulados_rj <- left_join(obitos_acumulados_rj, datas, by="date")
+dispersao_casos_obitos_rj <- ggplot(NULL)+
+  geom_point(data = casos_acumulados_rj, aes(color = "Casos acumulados", x = id, y = casos_ac))+
+  geom_line(data = casos_acumulados_rj, aes(color = "Casos acumulados", x = id, y = casos_ac))+
+  geom_point(data = obitos_acumulados_rj, aes(color = "Óbitos acumulados", x = id, y = obitos_ac))+
+  geom_line(data = obitos_acumulados_rj, aes(color = "Óbitos acumulados", x = id, y = obitos_ac))+
+  labs(title = "Casos e óbitos acumulados de COVID-19 no estado do Rio de Janeiro", x = "#Dia", y = "Número de casos/óbitos")+
+  scale_color_manual(name = "", breaks = c("Casos acumulados", "Óbitos acumulados"), values = c("darkblue", "red"))
+ggsave(file="plots/scatter_obitos_casos_acumulados_rj.svg", plot=dispersao_casos_obitos_rj)
+# Data per state
+dados_por_estado <- dbGetQuery(conn, "select uf, total_casos, total_obitos, cast(total_obitos as float)/total_casos as letalidade, cast(total_obitos as float)/nhabs as mortalidade from (select state as uf, sum(new_confirmed) as total_casos, sum(new_deaths) as total_obitos, estimated_population_2019 as nhabs from casos where place_type is 'state' group by uf);")
