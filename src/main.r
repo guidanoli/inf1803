@@ -78,3 +78,18 @@ mapa_rj <- mapa_rj + scale_fill_gradient(name = "Número de casos", low = "white
         axis.title.x = element_blank(),
         rect = element_blank())
 ggsave(file="plots/rj.svg", plot=mapa_rj)
+# Scatter plot on daily cases
+casos_diarios <- dbGetQuery(conn, "select date, sum(new_confirmed) as total_casos from casos where place_type is 'state' group by date;")
+casos_diarios_rj <- dbGetQuery(conn, "select date, sum(new_confirmed) as total_casos from casos where place_type is 'city' and state is 'RJ' group by date;")
+datas <- dbGetQuery(conn, "select date from casos group by date;")
+datas <- mutate(datas, id=row_number())  # Add row id to new column called 'id'
+casos_diarios <- left_join(casos_diarios, datas, by="date")
+casos_diarios_rj <- left_join(casos_diarios_rj, datas, by="date")
+dispersao_casos <- ggplot(NULL, aes(x = id, y = total_casos))+
+  geom_point(data = casos_diarios, aes(color = "Brasil"))+
+  geom_line(data = casos_diarios, aes(color = "Brasil"))+
+  geom_point(data = casos_diarios_rj, aes(color = "RJ"))+
+  geom_line(data = casos_diarios_rj, aes(color = "RJ"))+
+  labs(title = "Casos novos diários de COVID-19", x = "#Dia", y = "Número de casos novos")+
+  scale_color_manual(name = "Região", breaks = c("Brasil", "RJ"), values = c("darkgreen", "darkblue"))
+ggsave(file="plots/scatter_casos.svg", plot=dispersao_casos)
