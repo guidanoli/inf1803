@@ -78,11 +78,12 @@ mapa_rj <- mapa_rj + scale_fill_gradient(name = "Número de casos", low = "white
         axis.title.x = element_blank(),
         rect = element_blank())
 ggsave(file="plots/rj.svg", plot=mapa_rj)
+# Get all dates indexed by id (useful for scatter plots)
+datas <- dbGetQuery(conn, "select date from casos group by date;")
+datas <- mutate(datas, id=row_number())  # Add row id to new column called 'id'
 # Scatter plot on daily cases
 casos_diarios <- dbGetQuery(conn, "select date, sum(new_confirmed) as total_casos from casos where place_type is 'state' group by date;")
 casos_diarios_rj <- dbGetQuery(conn, "select date, sum(new_confirmed) as total_casos from casos where place_type is 'city' and state is 'RJ' group by date;")
-datas <- dbGetQuery(conn, "select date from casos group by date;")
-datas <- mutate(datas, id=row_number())  # Add row id to new column called 'id'
 casos_diarios <- left_join(casos_diarios, datas, by="date")
 casos_diarios_rj <- left_join(casos_diarios_rj, datas, by="date")
 dispersao_casos <- ggplot(NULL, aes(x = id, y = total_casos))+
@@ -90,6 +91,39 @@ dispersao_casos <- ggplot(NULL, aes(x = id, y = total_casos))+
   geom_line(data = casos_diarios, aes(color = "Brasil"))+
   geom_point(data = casos_diarios_rj, aes(color = "RJ"))+
   geom_line(data = casos_diarios_rj, aes(color = "RJ"))+
-  labs(title = "Casos novos diários de COVID-19", x = "#Dia", y = "Número de casos novos")+
+  labs(title = "Casos diários de COVID-19", x = "#Dia", y = "Número de casos novos")+
   scale_color_manual(name = "Região", breaks = c("Brasil", "RJ"), values = c("darkgreen", "darkblue"))
 ggsave(file="plots/scatter_casos.svg", plot=dispersao_casos)
+# Scatter plot on daily deaths
+obitos_diarios_mm <- dbGetQuery(conn, "select date, avg(daily_deaths) over(order by date rows between 5 preceding and current row) as daily_deaths_avg from (select date, sum(new_deaths) as daily_deaths from casos where place_type is 'state' group by date);")
+obitos_diarios_rj_mm <- dbGetQuery(conn, "select date, avg(daily_deaths) over(order by date rows between 5 preceding and current row) as daily_deaths_avg from (select date, sum(new_deaths) as daily_deaths from casos where place_type is 'city' and state is 'RJ' group by date);")
+obitos_diarios_mm <- left_join(obitos_diarios_mm, datas, by="date")
+obitos_diarios_rj_mm <- left_join(obitos_diarios_rj_mm, datas, by="date")
+dispersao_obitos <- ggplot(NULL, aes(x = id, y = daily_deaths_avg))+
+  geom_point(data = obitos_diarios_mm, aes(color = "Brasil"))+
+  geom_point(data = obitos_diarios_rj_mm, aes(color = "RJ"))+
+  labs(title = "Óbitos diários de COVID-19", x = "#Dia", y = "Número de óbitos novos")+
+  scale_color_manual(name = "Região", breaks = c("Brasil", "RJ"), values = c("darkgreen", "darkblue"))
+ggsave(file="plots/scatter_obitos.svg", plot=dispersao_obitos)
+# Make trend analysis on daily deaths
+last_2weeks <- tail(obitos_diarios_mm, n=14)$daily_deaths_avg
+rate <- last_2weeks[14] / last_2weeks[1] - 1
+print(sprintf("Tendência de óbitos diários no Brasil: %.2f%%", rate*100))
+if (rate < -0.15) {
+  print("Em queda")
+} else if (rate > 0.15) {
+  print("Em crescimento")
+} else {
+  print("Estável")
+}
+# Make same analysis but on Rio
+last_2weeks <- tail(obitos_diarios_rj_mm, n=14)$daily_deaths_avg
+rate <- last_2weeks[14] / last_2weeks[1] - 1
+print(sprintf("Tendência de óbitos diários no Rio de Janeiro: %.2f%%", rate*100))
+if (rate < -0.15) {
+  print("Em queda")
+} else if (rate > 0.15) {
+  print("Em crescimento")
+} else {
+  print("Estável")
+}
