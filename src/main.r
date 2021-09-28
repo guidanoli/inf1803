@@ -23,3 +23,6 @@ casos_por_regiao <- dbGetQuery(conn, "select nomeregiao, sum(new_confirmed) as c
 write.csv2(casos_por_regiao, file="data/casos_por_regiao.csv", quote=FALSE)
 casos_por_estado_sudeste <- dbGetQuery(conn, "select estados.nomeestado, sum(new_confirmed) as casos_acumulados from casos, estados, regioes where casos.state = estados.uf and estados.codigoregiao = regioes.codigoregiao and regioes.nomeregiao is 'Sudeste' and place_type is 'city' group by estados.uf order by casos_acumulados desc;")
 write.csv2(casos_por_estado_sudeste, file="data/casos_por_estado_sudeste.csv", quote=FALSE)
+library(rgdal)
+brasil_shp <- readOGR(dsn="shapefiles", layer="BR_UF_2020")
+rj_shp <- readOGR(dsn="shapefiles", layer="RJ_Municipios_2020")
