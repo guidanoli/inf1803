@@ -23,6 +23,58 @@ casos_por_regiao <- dbGetQuery(conn, "select nomeregiao, sum(new_confirmed) as c
 write.csv2(casos_por_regiao, file="data/casos_por_regiao.csv", quote=FALSE)
 casos_por_estado_sudeste <- dbGetQuery(conn, "select estados.nomeestado, sum(new_confirmed) as casos_acumulados from casos, estados, regioes where casos.state = estados.uf and estados.codigoregiao = regioes.codigoregiao and regioes.nomeregiao is 'Sudeste' and place_type is 'city' group by estados.uf order by casos_acumulados desc;")
 write.csv2(casos_por_estado_sudeste, file="data/casos_por_estado_sudeste.csv", quote=FALSE)
+## Plotting
 library(rgdal)
+library(ggplot2)
+# Plot Brasil
 brasil_shp <- readOGR(dsn="shapefiles", layer="BR_UF_2020")
+brasil_df <- fortify(brasil_shp)
+casos_por_estado <- dbGetQuery(conn, "select codigoibge, sum(new_confirmed) as total_casos from casos, estados where place_type is 'state' and casos.state = estados.uf group by state;")
+index <- 0
+uf_codigos <- data.frame(matrix(nrow=0, ncol=2))
+colnames(uf_codigos) <- c('id', 'codigoibge')
+for (uf in brasil_shp$CD_UF) {
+  uf_codigos <- rbind(uf_codigos, data.frame(id=index, codigoibge=uf))
+  index <- index + 1
+}
+library(dplyr)
+library(scales)
+brasil_df$id <- as.double(brasil_df$id)
+brasil_df <- left_join(brasil_df, uf_codigos, by="id")
+brasil_df <- left_join(brasil_df, casos_por_estado, by="codigoibge")
+mapa_brasil <- ggplot(brasil_df, aes(x=long, y=lat, group=group))+
+  geom_polygon(aes(fill=total_casos), color="black")
+mapa_brasil <- mapa_brasil + scale_fill_gradient(name = "Número de casos", low = "white", high = "red", na.value = "grey50", labels = comma, trans = "log")+
+  theme(axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks = element_blank(),
+        axis.title.y = element_blank(),
+        axis.title.x = element_blank(),
+        rect = element_blank())
+library(svglite)
+ggsave(file="plots/brasil.svg", plot=mapa_brasil)
+# Plot Rio de Janeiro
 rj_shp <- readOGR(dsn="shapefiles", layer="RJ_Municipios_2020")
+rj_df <- fortify(rj_shp)
+casos_por_cidade_rj <- dbGetQuery(conn, "select city_ibge_code as codigoibge, sum(new_confirmed) as total_casos from casos where place_type is 'city' and state is 'RJ' and city_ibge_code is not '' group by city_ibge_code;")
+index <- 0
+cidade_codigos <- data.frame(matrix(nrow=0, ncol=2))
+colnames(cidade_codigos) <- c('id', 'codigoibge')
+for (mun in rj_shp$CD_MUN) {
+  cidade_codigos <- rbind(cidade_codigos, data.frame(id=index, codigoibge=mun))
+  index <- index + 1
+}
+rj_df$id <- as.double(rj_df$id)
+rj_df <- left_join(rj_df, cidade_codigos, by="id")
+rj_df$codigoibge <- as.integer(as.character(rj_df$codigoibge))  # There might be a better way to do this :-)
+rj_df <- left_join(rj_df, casos_por_cidade_rj, by="codigoibge")
+mapa_rj <- ggplot(rj_df, aes(x=long, y=lat, group=group))+
+  geom_polygon(aes(fill=total_casos), color="black")
+mapa_rj <- mapa_rj + scale_fill_gradient(name = "Número de casos", low = "white", high = "red", na.value = "grey50", labels = comma, trans = "log")+
+  theme(axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks = element_blank(),
+        axis.title.y = element_blank(),
+        axis.title.x = element_blank(),
+        rect = element_blank())
+ggsave(file="plots/rj.svg", plot=mapa_rj)
