@@ -1,4 +1,5 @@
 library(DBI)
+library(scales)
 conn <- dbConnect(RSQLite::SQLite(), dbname="data/covid.db")
 total_casos <- dbGetQuery(conn, "select sum(new_confirmed) from casos where place_type is 'state'")[,1]
 total_casos_rj_estado <- dbGetQuery(conn, "select sum(new_confirmed) from casos where state is 'RJ' and place_type is 'state'")[,1]
@@ -16,22 +17,22 @@ mortalidade <- total_obitos / habitantes
 mortalidade_rj_estado <- total_obitos_rj_estado / habitantes_rj_estado
 mortalidade_rj_cidade <- total_obitos_rj_cidade / habitantes_rj_cidade
 top_cidades_brasil <- dbGetQuery(conn, "select * from (select state, city, cast(sum(new_confirmed) as float)/estimated_population_2019 as taxa, cast(sum(new_deaths) as float)/sum(new_confirmed) as letalidade, cast(sum(new_deaths) as float)/estimated_population_2019 as mortalidade from casos where place_type is 'city' group by city_ibge_code order by taxa desc limit 10) order by state, city")
-top_cidades_brasil$taxa <- print(label_percent(accuracy=0.01, suffix="")(top_cidades_brasil$taxa))
-top_cidades_brasil$letalidade <- print(label_percent(accuracy=0.01, suffix="")(top_cidades_brasil$letalidade))
-top_cidades_brasil$mortalidade <- print(label_percent(accuracy=0.01, suffix="")(top_cidades_brasil$mortalidade))
+top_cidades_brasil$taxa <- label_percent(accuracy=0.01, suffix="")(top_cidades_brasil$taxa)
+top_cidades_brasil$letalidade <- label_percent(accuracy=0.01, suffix="")(top_cidades_brasil$letalidade)
+top_cidades_brasil$mortalidade <- label_percent(accuracy=0.01, suffix="")(top_cidades_brasil$mortalidade)
 write.csv2(top_cidades_brasil, file="data/top_cidades_brasil.csv", quote=FALSE)
 top_cidades_rj <- dbGetQuery(conn, "select * from (select city, cast(sum(new_confirmed) as float)/estimated_population_2019 as taxa, cast(sum(new_deaths) as float)/sum(new_confirmed) as letalidade, cast(sum(new_deaths) as float)/estimated_population_2019 as mortalidade from casos where place_type is 'city' and state is 'RJ' group by city_ibge_code order by taxa desc limit 10) order by city")
-top_cidades_rj$taxa <- print(label_percent(accuracy=0.01, suffix="")(top_cidades_rj$taxa))
-top_cidades_rj$letalidade <- print(label_percent(accuracy=0.01, suffix="")(top_cidades_rj$letalidade))
-top_cidades_rj$mortalidade <- print(label_percent(accuracy=0.01, suffix="")(top_cidades_rj$mortalidade))
+top_cidades_rj$taxa <- label_percent(accuracy=0.01, suffix="")(top_cidades_rj$taxa)
+top_cidades_rj$letalidade <- label_percent(accuracy=0.01, suffix="")(top_cidades_rj$letalidade)
+top_cidades_rj$mortalidade <- label_percent(accuracy=0.01, suffix="")(top_cidades_rj$mortalidade)
 write.csv2(top_cidades_rj, file="data/top_cidades_rj.csv", quote=FALSE)
 casos_por_regiao <- dbGetQuery(conn, "select nomeregiao, sum(new_confirmed) as casos_acumulados from casos, estados, regioes where casos.state = estados.uf and estados.codigoregiao = regioes.codigoregiao and place_type is 'city' group by regioes.codigoregiao order by casos_acumulados desc;")
 write.csv2(casos_por_regiao, file="data/casos_por_regiao.csv", quote=FALSE)
 casos_por_estado_sudeste <- dbGetQuery(conn, "select estados.nomeestado, sum(new_confirmed) as casos_acumulados from casos, estados, regioes where casos.state = estados.uf and estados.codigoregiao = regioes.codigoregiao and regioes.nomeregiao is 'Sudeste' and place_type is 'city' group by estados.uf order by casos_acumulados desc;")
 write.csv2(casos_por_estado_sudeste, file="data/casos_por_estado_sudeste.csv", quote=FALSE)
 dados_por_estado <- dbGetQuery(conn, "select uf, total_casos, total_obitos, cast(total_obitos as float)/total_casos as letalidade, cast(total_obitos as float)/nhabs as mortalidade from (select state as uf, sum(new_confirmed) as total_casos, sum(new_deaths) as total_obitos, estimated_population_2019 as nhabs from casos where place_type is 'state' group by uf);")
-dados_por_estado$letalidade <- print(label_percent(accuracy=0.01, suffix="")(dados_por_estado$letalidade))
-dados_por_estado$mortalidade <- print(label_percent(accuracy=0.01, suffix="")(dados_por_estado$mortalidade))
+dados_por_estado$letalidade <- label_percent(accuracy=0.01, suffix="")(dados_por_estado$letalidade)
+dados_por_estado$mortalidade <- label_percent(accuracy=0.01, suffix="")(dados_por_estado$mortalidade)
 write.csv2(dados_por_estado, file="data/dados_por_estado.csv", quote=FALSE)
 ## Plotting
 library(rgdal)
@@ -48,7 +49,6 @@ for (uf in brasil_shp$CD_UF) {
   index <- index + 1
 }
 library(dplyr)
-library(scales)
 brasil_df$id <- as.double(brasil_df$id)
 brasil_df <- left_join(brasil_df, uf_codigos, by="id")
 brasil_df <- left_join(brasil_df, casos_por_estado, by="codigoibge")
