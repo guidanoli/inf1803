@@ -1,3 +1,4 @@
+# Make sure the working directory is the repository root
 # Load libraries
 library(DBI)
 library(scales)
@@ -158,4 +159,4 @@ dispersao_casos_obitos_rj <- ggplot(NULL)+
   geom_line(data = obitos_acumulados_rj, aes(color = "Óbitos acumulados", x = id, y = obitos_ac))+
   labs(title = "Casos e óbitos acumulados de COVID-19 no estado do Rio de Janeiro", x = "Dia", y = "Número de casos/óbitos")+
   scale_color_manual(name = "", breaks = c("Casos acumulados", "Óbitos acumulados"), values = c("darkblue", "red"))
-# ggsave(file="plots/scatter_obitos_casos_acumulados_rj.svg", plot=dispersao_casos_obitos_rj)
+ggsave(file="plots/scatter_obitos_casos_acumulados_rj.svg", plot=dispersao_casos_obitos_rj)
