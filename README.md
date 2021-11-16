@@ -16,6 +16,7 @@ Matéria lecionada pela professora Ana Carolina Letichevsky no 2º período de 2
 * ggplot2
 * dplyr
 * svglite
+* igraph
 
 # Configuração
 
